@@ -27,7 +27,7 @@
     
 }
 
-@property (nonatomic, strong) CADisplayLink *displayLink;
+@property (nonatomic, weak) CADisplayLink *displayLink;
 
 @end
 
@@ -66,7 +66,7 @@
         CGFloat animationProgress = [self easeOutExpo:timeProgress];
         
         // If we're animating, calculate where we should be given the current progress.
-        if (animationProgress <= 1.0) {
+        if (timeProgress <= 1.0 && animationProgress > 0) {
             _positionX = _releaseLocation - (_releaseLocation * animationProgress);
         } else {
             _startTime = 0;
@@ -103,7 +103,12 @@
     do {
         foundX = _xValues[t];
         t++;
-    } while (foundX <= x && t < kInterpolationPoints);
+    } while (foundX <= x && t <= kInterpolationPoints);
+    
+    if (t == kInterpolationPoints) {
+        // Couldn't the nearest value, return 1.0.
+        return 1.0;
+    }
     
     return _yValues[t];
 }
