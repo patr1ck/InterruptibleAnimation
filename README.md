@@ -11,4 +11,4 @@ Both of these are things – using a n-order Bézier animation curve and pausing
 
 This project is the solution, based on Loren's tweet, that I've come up with so far. It's relatively simple, and I'd love to get some feedback on how this is properly done. Please have a look and let me know what you think.
 
-You can email me at [patrick@fadeover.org](mailto://patrick@fadeover.org) Thanks.
+You can email me at [patrick@fadeover.org](mailto://patrick@fadeover.org), tweet at me [@patr1ck](https://twitter.com/patr1ck), or just yell really, really loud.
