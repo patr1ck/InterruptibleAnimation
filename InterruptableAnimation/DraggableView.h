@@ -9,5 +9,10 @@
 #import <UIKit/UIKit.h>
 
 @interface DraggableView : UIView
+
+@property (nonatomic, assign) BOOL dragsHorizontally;
+@property (nonatomic, assign) BOOL dragsVertically;
+
 - (void)setup;
+
 @end

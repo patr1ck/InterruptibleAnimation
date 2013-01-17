@@ -15,8 +15,15 @@
     
     CGFloat _positionX;
     CGFloat _touchDownX;
+    CGFloat _originX;
+    
+    CGFloat _positionY;
+    CGFloat _touchDownY;
+    CGFloat _originY;
+    
     CFTimeInterval _startTime;
-    CGFloat _releaseLocation;
+    CGFloat _releaseLocationX;
+    CGFloat _releaseLocationY;
     CFTimeInterval _duration;
     
     CGPoint _firstControlPoint;
@@ -38,8 +45,15 @@
     self.displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(display:)];
     [self.displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSRunLoopCommonModes];
     
-    // We only animate anlong the x-axis to keep this demo simple
-    _positionX = self.frame.origin.x;
+    self.dragsVertically = NO;
+    self.dragsHorizontally = YES;
+    
+    _positionX = 0;
+    _originX = self.frame.origin.x;
+    
+    _positionY = 0;
+    _originY = self.frame.origin.y;
+    
     _duration = 1.5;
     
     // easeOutExpo - http://easings.net/#easeOutExpo
@@ -67,14 +81,25 @@
         
         // If we're animating, calculate where we should be given the current progress.
         if (timeProgress <= 1.0 && animationProgress > 0) {
-            _positionX = _releaseLocation - (_releaseLocation * animationProgress);
+            _positionX = _originX + _releaseLocationX - (_releaseLocationX * animationProgress);
+            _positionY = _originY + _releaseLocationY - (_releaseLocationY * animationProgress);
         } else {
             _startTime = 0;
-            _positionX = 0;
+            _positionX = _originX;
+            _positionY = _originY;
         }
     }
     
-    self.frame = CGRectMake(_positionX, self.frame.origin.y, self.bounds.size.width, self.bounds.size.height);
+    if (self.dragsHorizontally && self.dragsVertically) {
+        self.frame = CGRectMake(_positionX, _positionY, self.bounds.size.width, self.bounds.size.height);
+    } else if (self.dragsHorizontally && !self.dragsVertically) {
+        self.frame = CGRectMake(_positionX, _originY, self.bounds.size.width, self.bounds.size.height);
+    } else if (!self.dragsHorizontally && self.dragsVertically) {
+        self.frame = CGRectMake(_originX, _positionY, self.bounds.size.width, self.bounds.size.height);
+    } else if (!self.dragsHorizontally && !self.dragsVertically) {
+        // Do nothing.
+    }
+    
 }
 
 - (CGFloat)xCubic:(double)t
@@ -122,8 +147,10 @@
     
     if (_startTime != 0) {
         _touchDownX = pointDown.x - _positionX;
+        _touchDownY = pointDown.y - _positionY;
     } else {
         _touchDownX = pointDown.x;
+        _touchDownY = pointDown.y;
     }
     
     _startTime = 0;
@@ -132,17 +159,20 @@
 - (void)touchesCancelled:(NSSet *)touches withEvent:(UIEvent *)event
 {
     _positionX = 0;
+    _positionY = 0;
 }
 
 - (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event
 {
     CGPoint pointMoveTo = [[touches anyObject] locationInView:[self superview]];
     _positionX = pointMoveTo.x - _touchDownX;
+    _positionY = pointMoveTo.y - _touchDownY;
 }
 
 - (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event
 {
-    _releaseLocation = _positionX;
+    _releaseLocationX = _positionX;
+    _releaseLocationY = _positionY;
     _startTime = CACurrentMediaTime();
 }
 
@@ -151,7 +181,6 @@
 {
     [self.displayLink invalidate];
     self.displayLink = nil;
-//    self.delegate = nil;
 }
 
 @end
