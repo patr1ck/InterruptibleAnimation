@@ -20,6 +20,8 @@
 	// Do any additional setup after loading the view, typically from a nib.
     
     [self.draggableView setup];
+    self.draggableView.dragsHorizontally = YES;
+    self.draggableView.dragsVertically = YES;
 }
 
 - (void)didReceiveMemoryWarning

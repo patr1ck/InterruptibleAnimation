@@ -40,13 +40,22 @@
 
 @implementation DraggableView
 
+- (id)initWithFrame:(CGRect)frame
+{
+    self = [super initWithFrame:frame];
+    if (self) {
+        self.dragsVertically = NO;
+        self.dragsHorizontally = YES;
+        
+        _duration = 1.;
+    }
+    return self;
+}
+
 - (void)setup
 {
     self.displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(display:)];
     [self.displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSRunLoopCommonModes];
-    
-    self.dragsVertically = NO;
-    self.dragsHorizontally = YES;
     
     _positionX = 0;
     _originX = self.frame.origin.x;
@@ -57,7 +66,7 @@
     _duration = 1.5;
     
     // easeOutExpo - http://easings.net/#easeOutExpo
-    // Eventually we'll want to use a custom, higher order curve with a bounce, but this is fine for now.
+    // You can swap this out for other points, or an entirely different function.
     _firstControlPoint = CGPointMake(0.19, 1);
     _secondControlPoint = CGPointMake(0.22, 1);
     
@@ -100,6 +109,9 @@
         // Do nothing.
     }
     
+    if (self.delegate && [self.delegate respondsToSelector:@selector(draggableView:didChangeFrame:)]) {
+        [self.delegate draggableView:self didChangeFrame:self.frame];
+    }
 }
 
 - (CGFloat)xCubic:(double)t
@@ -142,12 +154,15 @@
 
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
 {
+    _releaseLocationX = 0;
+    _releaseLocationY = 0;
+    
     // Set our initial position
     CGPoint pointDown = [[touches anyObject] locationInView:[self superview]];
     
     if (_startTime != 0) {
-        _touchDownX = pointDown.x - _positionX;
-        _touchDownY = pointDown.y - _positionY;
+        _touchDownX = _originX + pointDown.x - _positionX;
+        _touchDownY = _originY + pointDown.y - _positionY;
     } else {
         _touchDownX = pointDown.x;
         _touchDownY = pointDown.y;
@@ -158,21 +173,35 @@
 
 - (void)touchesCancelled:(NSSet *)touches withEvent:(UIEvent *)event
 {
-    _positionX = 0;
-    _positionY = 0;
+    _positionX = _originX;
+    _positionY = _originY;
 }
 
 - (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event
 {
     CGPoint pointMoveTo = [[touches anyObject] locationInView:[self superview]];
-    _positionX = pointMoveTo.x - _touchDownX;
-    _positionY = pointMoveTo.y - _touchDownY;
+    _positionX = _originX + pointMoveTo.x - _touchDownX;
+    _positionY = _originY + pointMoveTo.y - _touchDownY;
 }
 
 - (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event
 {
-    _releaseLocationX = _positionX;
-    _releaseLocationY = _positionY;
+    _releaseLocationX = _positionX - _originX;
+    _releaseLocationY = _positionY - _originY;
+    _startTime = CACurrentMediaTime();
+}
+
+- (void)translateByY:(CGFloat)newY;
+{
+    _releaseLocationY = (_originY - newY);
+    _originY = newY;
+    _startTime = CACurrentMediaTime();
+}
+
+- (void)translateByX:(CGFloat)newX;
+{
+    _releaseLocationX = (_originX - newX);
+    _originX = newX;
     _startTime = CACurrentMediaTime();
 }
 
