@@ -76,6 +76,7 @@
         [self removeGestureRecognizer:self.panGesture];
         self.panGesture = [[PanGestureRecognizer alloc] initWithTarget:self action:@selector(pan:)];
         self.panGesture.direction = direction;
+        [self addGestureRecognizer:self.panGesture];
         _direction = direction;
     }
 }
@@ -89,7 +90,6 @@
     _currentOrigin.y = self.frame.origin.y;
     
     _originalOrigin = CGPointMake(_currentOrigin.x, _currentOrigin.y);
-    _alternateOrigin = CGPointMake(160, 0);
 }
 
 #pragma mark - Display Updating
