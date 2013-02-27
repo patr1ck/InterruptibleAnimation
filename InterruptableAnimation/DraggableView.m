@@ -6,35 +6,38 @@
 //
 //
 
-#import "DraggableView.h"
 #import <QuartzCore/QuartzCore.h>
+
+#import "DraggableView.h"
+#import "PanGestureRecognizer.h"
 
 #define kInterpolationPoints 100
 
 @interface DraggableView () {
     
-    CGFloat _positionX;
-    CGFloat _touchDownX;
-    CGFloat _originX;
+    CGPoint _currentPosition;
+    CGPoint _touchDownPoint;
     
-    CGFloat _positionY;
-    CGFloat _touchDownY;
-    CGFloat _originY;
+    CGPoint _currentOrigin;
+    CGPoint _originalOrigin;
     
     CFTimeInterval _startTime;
     CGFloat _releaseLocationX;
     CGFloat _releaseLocationY;
+    
+    // Animation Time
     CFTimeInterval _duration;
     
+    // Animation curve
     CGPoint _firstControlPoint;
     CGPoint _secondControlPoint;
-    
     CGFloat _xValues[kInterpolationPoints];
     CGFloat _yValues[kInterpolationPoints];
     
 }
 
 @property (nonatomic, weak) CADisplayLink *displayLink;
+@property (nonatomic, strong) PanGestureRecognizer *panGesture;
 
 @end
 
@@ -44,37 +47,49 @@
 {
     self = [super initWithFrame:frame];
     if (self) {
-        self.dragsVertically = NO;
-        self.dragsHorizontally = YES;
+        
+        // easeOutExpo - http://easings.net/#easeOutExpo
+        // You can swap this out for other points, or ignore them all together and
+        // use an entirely different function.
+        _firstControlPoint = CGPointMake(0.19, 1);
+        _secondControlPoint = CGPointMake(0.22, 1);
+        
+        // Pre-calculate out interpolation values
+        for (int i = 0; i < kInterpolationPoints; i++) {
+            _xValues[i] = [self xCubic:( (CGFloat) (i+1) / kInterpolationPoints)];
+            _yValues[i] = [self yCubic:( (CGFloat) (i+1) / kInterpolationPoints)];
+        }
+        
+        self.panGesture = [[PanGestureRecognizer alloc] initWithTarget:self action:@selector(pan:)];
+        self.panGesture.direction = PanDirectionHorizontal;
+        self.direction = PanDirectionHorizontal;
+        [self addGestureRecognizer:self.panGesture];
         
         _duration = 1.;
     }
     return self;
 }
 
+- (void)setDirection:(PanDirection)direction
+{
+    if (direction != _direction) {
+        [self removeGestureRecognizer:self.panGesture];
+        self.panGesture = [[PanGestureRecognizer alloc] initWithTarget:self action:@selector(pan:)];
+        self.panGesture.direction = direction;
+        _direction = direction;
+    }
+}
+
 - (void)setup
 {
-    self.displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(display:)];
-    [self.displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSRunLoopCommonModes];
+    _currentPosition.x = self.frame.origin.x;
+    _currentOrigin.x = self.frame.origin.x;
     
-    _positionX = 0;
-    _originX = self.frame.origin.x;
+    _currentPosition.x = self.frame.origin.x;
+    _currentOrigin.y = self.frame.origin.y;
     
-    _positionY = 0;
-    _originY = self.frame.origin.y;
-    
-    _duration = 1.5;
-    
-    // easeOutExpo - http://easings.net/#easeOutExpo
-    // You can swap this out for other points, or an entirely different function.
-    _firstControlPoint = CGPointMake(0.19, 1);
-    _secondControlPoint = CGPointMake(0.22, 1);
-    
-    // Pre-calculate out interpolation values
-    for (int i = 0; i < kInterpolationPoints; i++) {
-        _xValues[i] = [self xCubic:( (CGFloat) (i+1) / kInterpolationPoints)];
-        _yValues[i] = [self yCubic:( (CGFloat) (i+1) / kInterpolationPoints)];
-    }
+    _originalOrigin = CGPointMake(_currentOrigin.x, _currentOrigin.y);
+    _alternateOrigin = CGPointMake(160, 0);
 }
 
 #pragma mark - Display Updating
@@ -90,29 +105,116 @@
         
         // If we're animating, calculate where we should be given the current progress.
         if (timeProgress <= 1.0 && animationProgress > 0) {
-            _positionX = _originX + _releaseLocationX - (_releaseLocationX * animationProgress);
-            _positionY = _originY + _releaseLocationY - (_releaseLocationY * animationProgress);
+            _currentPosition.x = _currentOrigin.x + _releaseLocationX - (_releaseLocationX * animationProgress);
+            _currentPosition.y = _currentOrigin.y + _releaseLocationY - (_releaseLocationY * animationProgress);
         } else {
             _startTime = 0;
-            _positionX = _originX;
-            _positionY = _originY;
+            _currentPosition.x = _currentOrigin.x;
+            _currentPosition.y = _currentOrigin.y;
+            if (self.delegate && [self.delegate respondsToSelector:@selector(draggableViewFinishedMoving:)]) {
+                [self.delegate draggableViewFinishedMoving:self];
+            }
+            [self.displayLink invalidate];
+            self.displayLink = nil;
         }
     }
     
-    if (self.dragsHorizontally && self.dragsVertically) {
-        self.frame = CGRectMake(_positionX, _positionY, self.bounds.size.width, self.bounds.size.height);
-    } else if (self.dragsHorizontally && !self.dragsVertically) {
-        self.frame = CGRectMake(_positionX, _originY, self.bounds.size.width, self.bounds.size.height);
-    } else if (!self.dragsHorizontally && self.dragsVertically) {
-        self.frame = CGRectMake(_originX, _positionY, self.bounds.size.width, self.bounds.size.height);
-    } else if (!self.dragsHorizontally && !self.dragsVertically) {
-        // Do nothing.
+    CGRect newFrame = CGRectZero;
+    
+    if (self.panGesture.direction == PanDirectionHorizontal) {
+        newFrame = CGRectMake(_currentPosition.x, _currentOrigin.y, self.bounds.size.width, self.bounds.size.height);
+    } else if (self.panGesture.direction == PanDirectionVertical) {
+        newFrame = CGRectMake(_currentOrigin.x, _currentPosition.y, self.bounds.size.width, self.bounds.size.height);
     }
+    
+    CGRect altFrame = CGRectNull;
+    if (self.delegate && [self.delegate respondsToSelector:@selector(draggableView:shouldChangeFrame:)]) {
+        altFrame = [self.delegate draggableView:self shouldChangeFrame:newFrame];
+    }
+    
+    if (CGRectIsNull(altFrame)) {
+        altFrame = newFrame;
+    }
+    
+    self.frame = altFrame;
     
     if (self.delegate && [self.delegate respondsToSelector:@selector(draggableView:didChangeFrame:)]) {
         [self.delegate draggableView:self didChangeFrame:self.frame];
     }
+    
 }
+
+#pragma mark - Touch handling
+
+- (void)pan:(UIPanGestureRecognizer *)gestureRecognizer
+{
+    CGPoint pointDown = [gestureRecognizer translationInView:[self superview]];
+    
+    if([gestureRecognizer state] == UIGestureRecognizerStateBegan) {
+        self.displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(display:)];
+        [self.displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSRunLoopCommonModes];
+        
+        _releaseLocationX = 0;
+        _releaseLocationY = 0;
+        
+        if (_startTime != 0) {
+            _touchDownPoint.x = _currentOrigin.x + pointDown.x - _currentPosition.x;
+            _touchDownPoint.y = _currentOrigin.y + pointDown.y - _currentPosition.y;
+        } else {
+            _touchDownPoint.x = pointDown.x;
+            _touchDownPoint.y = pointDown.y;
+        }
+        
+        _startTime = 0;
+    } else if ([gestureRecognizer state] == UIGestureRecognizerStateChanged) {
+        _currentPosition.x = _currentOrigin.x + pointDown.x - _touchDownPoint.x;
+        _currentPosition.y = _currentOrigin.y + pointDown.y - _touchDownPoint.y;
+        
+    } else if ([gestureRecognizer state] == UIGestureRecognizerStateEnded) {
+        
+        if (self.direction == PanDirectionHorizontal) {
+            if (_currentPosition.x > _alternateOrigin.x/2) {
+                _currentOrigin.x = _alternateOrigin.x;
+            } else {
+                _currentOrigin.x = _originalOrigin.x;
+            }
+        } else {
+            if (_currentPosition.y > _alternateOrigin.y/2) {
+                _currentOrigin.y = _alternateOrigin.y;
+            } else {
+                _currentOrigin.y = _originalOrigin.y;
+            }
+        }
+
+        
+        _releaseLocationX = _currentPosition.x - _currentOrigin.x;
+        _releaseLocationY = _currentPosition.y - _currentOrigin.y;
+        _startTime = CACurrentMediaTime();
+        
+        if (self.delegate && [self.delegate respondsToSelector:@selector(draggableViewFinishedTouch:)]) {
+            [self.delegate draggableViewFinishedTouch:self];
+        }
+    }
+}
+
+- (void)moveToNewOrigin:(CGPoint)newOrigin
+{
+    _releaseLocationX = (_currentOrigin.x - newOrigin.x);
+    _currentOrigin.x = newOrigin.x;
+    _releaseLocationY = (_currentOrigin.y - newOrigin.y);
+    _currentOrigin.y = newOrigin.y;
+    _startTime = CACurrentMediaTime();
+}
+
+- (void)setOldFrame:(CGRect)frame
+{
+    _currentOrigin.x = frame.origin.x;
+    _currentOrigin.y = frame.origin.y;
+    [super setFrame:frame];
+    
+}
+
+#pragma mark - Helpers
 
 - (CGFloat)xCubic:(double)t
 {
@@ -150,66 +252,15 @@
     return _yValues[t];
 }
 
-#pragma mark - Touch handling
 
-- (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
-{
-    _releaseLocationX = 0;
-    _releaseLocationY = 0;
-    
-    // Set our initial position
-    CGPoint pointDown = [[touches anyObject] locationInView:[self superview]];
-    
-    if (_startTime != 0) {
-        _touchDownX = _originX + pointDown.x - _positionX;
-        _touchDownY = _originY + pointDown.y - _positionY;
-    } else {
-        _touchDownX = pointDown.x;
-        _touchDownY = pointDown.y;
-    }
-    
-    _startTime = 0;
-}
-
-- (void)touchesCancelled:(NSSet *)touches withEvent:(UIEvent *)event
-{
-    _positionX = _originX;
-    _positionY = _originY;
-}
-
-- (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event
-{
-    CGPoint pointMoveTo = [[touches anyObject] locationInView:[self superview]];
-    _positionX = _originX + pointMoveTo.x - _touchDownX;
-    _positionY = _originY + pointMoveTo.y - _touchDownY;
-}
-
-- (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event
-{
-    _releaseLocationX = _positionX - _originX;
-    _releaseLocationY = _positionY - _originY;
-    _startTime = CACurrentMediaTime();
-}
-
-- (void)translateByY:(CGFloat)newY;
-{
-    _releaseLocationY = (_originY - newY);
-    _originY = newY;
-    _startTime = CACurrentMediaTime();
-}
-
-- (void)translateByX:(CGFloat)newX;
-{
-    _releaseLocationX = (_originX - newX);
-    _originX = newX;
-    _startTime = CACurrentMediaTime();
-}
-
+#pragma mark - Cleanup
 
 - (void)dealloc
 {
     [self.displayLink invalidate];
     self.displayLink = nil;
+    self.delegate = nil;
 }
+
 
 @end

@@ -19,9 +19,18 @@
     [super viewDidLoad];
 	// Do any additional setup after loading the view, typically from a nib.
     
+    DraggableView *dv = [[DraggableView alloc] initWithFrame:self.view.bounds];
+    [self.view addSubview:dv];
+    self.draggableView = dv;
+    self.draggableView.backgroundColor = [UIColor blueColor];
+    
+    UILabel *label = [[UILabel alloc] initWithFrame:CGRectMake(10, 10, 100, 30)];
+    label.text = @"Drag Me";
+    label.textColor = [UIColor whiteColor];
+    label.backgroundColor = [UIColor blueColor];
+    [self.draggableView addSubview:label];
+    
     [self.draggableView setup];
-    self.draggableView.dragsHorizontally = YES;
-    self.draggableView.dragsVertically = YES;
 }
 
 - (void)didReceiveMemoryWarning

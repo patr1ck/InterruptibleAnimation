@@ -11,6 +11,6 @@
 
 @interface ViewController : UIViewController
 
-@property (nonatomic, weak) IBOutlet DraggableView *draggableView;
+@property (nonatomic, weak) DraggableView *draggableView;
 
 @end

@@ -20,6 +20,7 @@
 		CD1FCBFB169F8F7800FB7E36 /* ViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = CD1FCBF9169F8F7800FB7E36 /* ViewController.xib */; };
 		CD1FCC03169F90B900FB7E36 /* DraggableView.m in Sources */ = {isa = PBXBuildFile; fileRef = CD1FCC02169F90B900FB7E36 /* DraggableView.m */; };
 		CD1FCC05169F918700FB7E36 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CD1FCC04169F918700FB7E36 /* QuartzCore.framework */; };
+		CD7F6A0616BC5A5200A58475 /* PanGestureRecognizer.m in Sources */ = {isa = PBXBuildFile; fileRef = CD7F6A0516BC5A5200A58475 /* PanGestureRecognizer.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -42,6 +43,8 @@
 		CD1FCC01169F90B900FB7E36 /* DraggableView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DraggableView.h; sourceTree = "<group>"; };
 		CD1FCC02169F90B900FB7E36 /* DraggableView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DraggableView.m; sourceTree = "<group>"; };
 		CD1FCC04169F918700FB7E36 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
+		CD7F6A0416BC5A5200A58475 /* PanGestureRecognizer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PanGestureRecognizer.h; sourceTree = "<group>"; };
+		CD7F6A0516BC5A5200A58475 /* PanGestureRecognizer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PanGestureRecognizer.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -96,6 +99,8 @@
 				CD1FCBF7169F8F7800FB7E36 /* ViewController.m */,
 				CD1FCBF9169F8F7800FB7E36 /* ViewController.xib */,
 				CD1FCBE5169F8F7800FB7E36 /* Supporting Files */,
+				CD7F6A0416BC5A5200A58475 /* PanGestureRecognizer.h */,
+				CD7F6A0516BC5A5200A58475 /* PanGestureRecognizer.m */,
 				CD1FCC01169F90B900FB7E36 /* DraggableView.h */,
 				CD1FCC02169F90B900FB7E36 /* DraggableView.m */,
 			);
@@ -185,6 +190,7 @@
 				CD1FCBEF169F8F7800FB7E36 /* AppDelegate.m in Sources */,
 				CD1FCBF8169F8F7800FB7E36 /* ViewController.m in Sources */,
 				CD1FCC03169F90B900FB7E36 /* DraggableView.m in Sources */,
+				CD7F6A0616BC5A5200A58475 /* PanGestureRecognizer.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -301,6 +307,7 @@
 				CD1FCC00169F8F7800FB7E36 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
